@@ -9,7 +9,6 @@
 #include <sys/wait.h>
 #include <termios.h>
 #include <unistd.h>
-
 #include "tokenizer.h"
 
 /* Convenience macro to silence compiler warnings about unused function parameters. */
@@ -29,6 +28,8 @@ pid_t shell_pgid;
 
 int cmd_exit(struct tokens *tokens);
 int cmd_help(struct tokens *tokens);
+int cmd_pwd(struct tokens *tokens);
+int cmd_cd(struct tokens *tokens);
 
 /* Built-in command functions take token array (see parse.h) and return int */
 typedef int cmd_fun_t(struct tokens *tokens);
@@ -43,6 +44,8 @@ typedef struct fun_desc {
 fun_desc_t cmd_table[] = {
   {cmd_help, "?", "show this help menu"},
   {cmd_exit, "exit", "exit the command shell"},
+  {cmd_pwd, "pwd", "print current working directory"},
+  {cmd_cd, "cd", "open the directory"},
 };
 
 /* Prints a helpful description for the given command */
@@ -55,6 +58,24 @@ int cmd_help(unused struct tokens *tokens) {
 /* Exits this shell */
 int cmd_exit(unused struct tokens *tokens) {
   exit(0);
+}
+
+/*pwd Command*/
+int cmd_pwd(unused struct tokens *tokens) {
+  char buff[256];
+  getcwd(buff, sizeof(buff));
+  printf("%s\n", buff);
+  return 0;
+}
+
+/*cd Command*/
+int cmd_cd(unused struct tokens *tokens) {
+  int ret;
+  ret = chdir(tokens_get_token(tokens, 1));
+  if (ret != 0) {
+    printf("Invalid directory! Please try again!\n");
+  }
+  return 0;
 }
 
 /* Looks up the built-in command, if it exists. */
@@ -112,7 +133,22 @@ int main(unused int argc, unused char *argv[]) {
       cmd_table[fundex].fun(tokens);
     } else {
       /* REPLACE this to run commands as programs. */
-      fprintf(stdout, "This shell doesn't know how to run programs.\n");
+      if (!fork()) {
+        int cmd_length = tokens_get_length(tokens);
+        char *cmd[cmd_length+1];
+        unsigned int i;
+        for (i = 0; i < cmd_length; i++) {
+          cmd[i] = tokens_get_token(tokens, i);
+        }
+        cmd[i] = 0;
+        execv(cmd[0], cmd);
+        perror(cmd[0]);
+        exit(0);
+      }
+      else {
+        int status;
+        wait(&status); 
+      }  
     }
 
     if (shell_is_interactive)
