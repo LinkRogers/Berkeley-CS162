@@ -141,7 +141,7 @@ int main(unused int argc, unused char *argv[]) {
           cmd[i] = tokens_get_token(tokens, i);
         }
         cmd[i] = 0;
-        execv(cmd[0], cmd);
+        execvp(cmd[0], cmd);
         perror(cmd[0]);
         exit(0);
       }
