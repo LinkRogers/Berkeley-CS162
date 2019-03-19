@@ -10,6 +10,7 @@
 #include <termios.h>
 #include <unistd.h>
 #include "tokenizer.h"
+#include <fcntl.h>
 
 /* Convenience macro to silence compiler warnings about unused function parameters. */
 #define unused __attribute__((unused))
@@ -86,6 +87,32 @@ int lookup(char cmd[]) {
   return -1;
 }
 
+/* Execute command */
+int exe_command(unused struct tokens *tokens) {  
+  int newfd;
+  char *cmd[256];
+  unsigned int i;
+  for (i = 0; i < tokens_get_length(tokens); i++) {
+    char *token; 
+    token = tokens_get_token(tokens, i);
+    if (strcmp(">", token)== 0) {
+      newfd = open(tokens_get_token(tokens, i+1), O_CREAT|O_TRUNC|O_WRONLY, 0644);
+      dup2(newfd, 1);
+      break;
+    }
+    else if (strcmp("<", token)== 0) {
+      newfd = open(tokens_get_token(tokens, i+1), O_CREAT|O_RDONLY);
+      dup2(newfd, 0);
+      break;
+    }
+    cmd[i] = token;
+  }
+  cmd[i] = 0;
+  execvp(cmd[0], cmd);
+  perror(cmd[0]);
+  exit(1);
+}
+
 /* Intialization procedures for this shell */
 void init_shell() {
   /* Our shell is connected to standard input. */
@@ -114,6 +141,7 @@ void init_shell() {
 
 int main(unused int argc, unused char *argv[]) {
   init_shell();
+  //signal(SIGINT, SIG_IGN);
 
   static char line[4096];
   int line_num = 0;
@@ -128,26 +156,39 @@ int main(unused int argc, unused char *argv[]) {
 
     /* Find which built-in function to run. */
     int fundex = lookup(tokens_get_token(tokens, 0));
-
+    signal(SIGINT, SIG_IGN);
+      
     if (fundex >= 0) {
       cmd_table[fundex].fun(tokens);
     } else {
       /* REPLACE this to run commands as programs. */
-      if (!fork()) {
-        int cmd_length = tokens_get_length(tokens);
-        char *cmd[cmd_length+1];
-        unsigned int i;
-        for (i = 0; i < cmd_length; i++) {
-          cmd[i] = tokens_get_token(tokens, i);
-        }
-        cmd[i] = 0;
-        execvp(cmd[0], cmd);
-        perror(cmd[0]);
-        exit(0);
+      pid_t pid = fork();
+      if (pid > 0) { 
+        setpgid(pid, getpgid(pid));
+        tcsetpgrp(0, getpgid(pid));
+      }
+      if (pid == 0) {
+        pid_t program_pid = getpid();
+        pid_t program_gpid = getpgrp();
+        printf("program pid: %d, group id: %d\n", program_pid, program_gpid);
+        setpgid(program_pid, program_pid);
+        program_gpid = getpgrp();
+        printf("now, program pid: %d, group id: %d\n", program_pid, program_gpid);
+        printf("in foreground\n");
+        exe_command(tokens);
       }
       else {
-        int status;
-        wait(&status); 
+        pid_t p_pid = getpid();
+        pid_t p_gpid = getpgrp();
+        printf("parent pid: %d, group id: %d\n", p_pid, p_gpid);
+        setpgid(p_pid, p_pid);
+        p_gpid = getpgrp();
+        printf("now, parent pid: %d, group id: %d\n", p_pid, p_gpid);
+        wait(NULL);
+        signal(SIGTTOU, SIG_IGN);
+        signal(SIGTTIN, SIG_IGN);
+        tcsetattr(shell_terminal, TCSANOW, &shell_tmodes);  
+        printf("back!\n");
       }  
     }
 
