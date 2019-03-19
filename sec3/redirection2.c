@@ -13,7 +13,7 @@ int main(int argc, char **argv) {
   int pid, status;
   int newfd;
   int dupfd;
-  char *cmd[] = { "/bin/ls", "-al", "/", 0 };
+  char *cmd[] = { "/bin/ls", "-al", "/", 0, "hi" };
   if ((pid = fork()) < 0) {
     perror("fork() failed!");
     exit(1);
@@ -30,7 +30,6 @@ int main(int argc, char **argv) {
   dup2(newfd, 1);
   execvp(cmd[0], cmd);
   perror(cmd[0]); /* execvp failed */
-  close(newfd);
   printf("all done");
   exit(1);
 }

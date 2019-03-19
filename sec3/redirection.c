@@ -13,7 +13,7 @@ int main(int argc, char **argv) {
   int pid, status;
   int newfd;
   int dupfd;
-  char *cmd[] = { "/bin/ls", "-al", "/", 0 };
+  char *cmd[] = { "/bin/ls", "-al", "/", 0, "12345" };
   if ((pid = fork()) < 0) {
     perror("fork() failed!");
     exit(1);
