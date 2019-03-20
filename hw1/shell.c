@@ -157,36 +157,31 @@ int main(unused int argc, unused char *argv[]) {
     /* Find which built-in function to run. */
     int fundex = lookup(tokens_get_token(tokens, 0));
     signal(SIGINT, SIG_IGN);
-      
+    signal(SIGTTOU, SIG_IGN);
+    signal(SIGTTIN, SIG_IGN);
+    signal(SIGQUIT, SIG_IGN);  
     if (fundex >= 0) {
       cmd_table[fundex].fun(tokens);
     } else {
       /* REPLACE this to run commands as programs. */
       pid_t pid = fork();
-      if (pid > 0) { 
-        setpgid(pid, getpgid(pid));
-        tcsetpgrp(0, getpgid(pid));
-      }
       if (pid == 0) {
+        signal(SIGINT, SIG_DFL);
+        signal(SIGTTOU, SIG_DFL);
+        signal(SIGTTIN, SIG_DFL);
+        signal(SIGQUIT, SIG_DFL);
+        
         pid_t program_pid = getpid();
-        pid_t program_gpid = getpgrp();
-        printf("program pid: %d, group id: %d\n", program_pid, program_gpid);
         setpgid(program_pid, program_pid);
-        program_gpid = getpgrp();
-        printf("now, program pid: %d, group id: %d\n", program_pid, program_gpid);
-        printf("in foreground\n");
+        while (tcgetpgrp(shell_terminal) != getpgrp())
+          kill(-shell_pgid, SIGTTIN);
         exe_command(tokens);
       }
       else {
-        pid_t p_pid = getpid();
-        pid_t p_gpid = getpgrp();
-        printf("parent pid: %d, group id: %d\n", p_pid, p_gpid);
-        setpgid(p_pid, p_pid);
-        p_gpid = getpgrp();
-        printf("now, parent pid: %d, group id: %d\n", p_pid, p_gpid);
+        setpgid(pid, pid);
+        tcsetpgrp(0, pid);
         wait(NULL);
-        signal(SIGTTOU, SIG_IGN);
-        signal(SIGTTIN, SIG_IGN);
+        tcsetpgrp(0, getpgrp());
         tcsetattr(shell_terminal, TCSANOW, &shell_tmodes);  
         printf("back!\n");
       }  
