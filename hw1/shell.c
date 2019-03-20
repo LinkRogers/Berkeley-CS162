@@ -160,6 +160,7 @@ int main(unused int argc, unused char *argv[]) {
     signal(SIGTTOU, SIG_IGN);
     signal(SIGTTIN, SIG_IGN);
     signal(SIGQUIT, SIG_IGN);  
+    signal(SIGTSTP, SIG_IGN);
     if (fundex >= 0) {
       cmd_table[fundex].fun(tokens);
     } else {
@@ -170,7 +171,7 @@ int main(unused int argc, unused char *argv[]) {
         signal(SIGTTOU, SIG_DFL);
         signal(SIGTTIN, SIG_DFL);
         signal(SIGQUIT, SIG_DFL);
-        
+        signal(SIGTSTP, SIG_DFL);
         pid_t program_pid = getpid();
         setpgid(program_pid, program_pid);
         while (tcgetpgrp(shell_terminal) != getpgrp())
