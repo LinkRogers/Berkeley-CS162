@@ -47,3 +47,6 @@ hw1/words
 hw1/lwords
 hw1/pwords
 hw1/fwords
+
+# HW5
+hw5/**/build
