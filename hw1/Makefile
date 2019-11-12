@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 EXECUTABLES=pthread words lwords pwords fwords
 CC=gcc
 CFLAGS=-g -pthread -Wall -std=gnu99
@@ -33,3 +34,24 @@ pwords.o word_count_p.o:
 
 clean:
 	rm -f $(EXECUTABLES) *.o
+=======
+SRCS=shell.c tokenizer.c
+EXECUTABLES=shell
+
+CC=gcc
+CFLAGS=-g -Wall -std=gnu99
+LDFLAGS=
+
+OBJS=$(SRCS:.c=.o)
+
+all: $(EXECUTABLES)
+
+$(EXECUTABLES): $(OBJS)
+	$(CC) $(CFLAGS) $(OBJS) $(LDFLAGS) -o $@
+
+.c.o:
+	$(CC) $(CFLAGS) -c $< -o $@
+
+clean:
+	rm -rf $(EXECUTABLES) $(OBJS)
+>>>>>>> 44fd239bb128f59ae368d37c60a167875910ea8a
