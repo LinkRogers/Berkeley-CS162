@@ -124,12 +124,6 @@ func (j *FileJournal) Empty() {
 // linked list operations and writes the new head and the previous
 // head to disk.
 func (j *FileJournal) Append(e Entry) error {
-	j.head.next = &journalEntry{
-		next:  nil,
-		entry: e,
-	}
-	j.head = j.head.next
-
 	var action string
 	switch e.Action {
 	case tpc_pb.Action_PREPARE:
@@ -152,6 +146,13 @@ func (j *FileJournal) Append(e Entry) error {
 	if err != nil {
 		return fmt.Errorf("error flushing journal: %v", err)
 	}
+
+	j.head.next = &journalEntry{
+		next:  nil,
+		entry: e,
+	}
+	j.head = j.head.next
+	j.size += 1
 
 	return nil
 }
